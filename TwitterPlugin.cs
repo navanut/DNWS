@@ -74,6 +74,7 @@ namespace DNWS
                 context.SaveChanges();
             }
         }
+
         public void AddFollowing(string followingName)
         {
             if (user == null)
@@ -99,6 +100,7 @@ namespace DNWS
                 context.SaveChanges();
             }
         }
+
         public List<Tweet> GetTimeline(User aUser)
         {
             if (aUser == null)
@@ -112,6 +114,7 @@ namespace DNWS
             }
             return timeline;
         }
+
         public List<Tweet> GetUserTimeline()
         {
             if (user == null)
@@ -175,6 +178,61 @@ namespace DNWS
                 context.Users.Add(user);
                 context.SaveChanges();
             }
+        }
+
+        public static void DeleteUser(string name, string password)
+        {
+            User user = new User();
+            user.Name = name;
+            user.Password = password;
+            using (var context = new TweetContext())
+            {
+                List<User> userlist = context.Users.Where(b => b.Name.Equals(name)).ToList();
+                if (userlist.Count > 0)
+                {
+                    throw new Exception("User already exists");
+                }
+                List<User> follow = context.Users.Where(b => b.Name.Equals(name)).ToList();
+                foreach(User y in follow)
+                {
+                    Twitter twit = new Twitter(y.Name);
+                    twit.RemoveFollowing(userlist[0].Name);
+                }
+                context.Users.Remove(userlist[0]);
+                context.SaveChanges();
+            }
+        }
+
+        public static bool Check_User(string name)
+        {
+            using (var context = new TweetContext())
+            {
+                List<User> userno = context.Users.Where(b => b.Name.Equals(name)).ToList();
+                if (userno.Count == 1)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public List<Following> GetFollowing()
+        {
+            if (user == null)
+            {
+                throw new Exception("User is not set");
+            }
+
+            using (var context = new TweetContext())
+            {
+                List<Following> followings = user.Following;
+                if (followings == null || followings.Count == 0)
+                {
+                    return null;
+                }
+                return followings;
+            }
+
         }
 
         public static bool IsValidUser(string name, string password)
@@ -273,7 +331,7 @@ namespace DNWS
         }
 
 
-        public HTTPResponse GetResponse(HTTPRequest request)
+        public virtual HTTPResponse GetResponse(HTTPRequest request)
         {
             HTTPResponse response = new HTTPResponse(200);
             StringBuilder sb = new StringBuilder();
